@@ -3,260 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KAS KELAS DIGITAL - 10th Grade</title>
+    <title>KAS KELAS PRO - Cloud Sync</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
         
-        /* CSS LOADING SCREEN */
         #loader-wrapper {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #4f46e5;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            z-index: 9999;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #4f46e5; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
             transition: opacity 0.6s ease;
         }
         .spinner {
-            width: 60px; height: 60px;
-            border: 6px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
-            border-top-color: #fff;
+            width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.2);
+            border-radius: 50%; border-top-color: #fff;
             animation: spin 1s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        #loading-text { margin-top: 25px; color: white; font-weight: 800; text-align: center; font-size: 1.1rem; padding: 0 30px; }
-        
-        /* UI UTILS */
         .admin-only { display: none; }
-        .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-20">
+<body class="bg-slate-50 min-h-screen">
 
     <div id="loader-wrapper">
         <div class="spinner"></div>
-        <div id="loading-text">Membuka lemari brankas...</div>
+        <div id="loading-text" class="mt-5 text-white font-bold text-center px-10">Mengkoneksikan ke Database...</div>
     </div>
 
-    <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 sticky top-0 z-40">
+    <nav class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-40 shadow-sm">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
-                    <span class="bg-indigo-600 text-white px-2 py-1 rounded-lg text-sm italic">PRO</span>
-                    KAS KELAS
-                </h1>
-                <p id="clock" class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">SISTEM KEUANGAN DIGITAL</p>
-            </div>
-            <button onclick="toggleAdmin()" id="btnAdmin" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-2xl text-xs font-black hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2 shadow-sm">
-                <span id="adminIcon">🔐</span> <span id="adminText">Login Admin</span>
+            <h1 class="text-xl font-extrabold text-slate-800">KAS KELAS <span class="text-indigo-600">PRO</span></h1>
+            <button onclick="toggleAdmin()" id="btnAdmin" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-xs font-black shadow-sm">
+                🔐 Login Admin
             </button>
         </div>
     </nav>
 
     <div class="max-w-6xl mx-auto p-4 lg:p-8">
-        
-        <div class="flex flex-col md:flex-row gap-6 mb-8">
-            <div class="flex-1 bg-indigo-600 rounded-[2rem] p-8 text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
-                <div class="relative z-10">
-                    <p class="text-indigo-100 text-[10px] font-black uppercase mb-2 tracking-widest">Periode Aktif</p>
-                    <select id="filterBulan" onchange="render()" class="bg-indigo-700/50 text-white font-black text-2xl p-2 rounded-2xl border-none outline-none focus:ring-4 focus:ring-white/20 transition cursor-pointer mb-6">
-                        <option value="Januari">Januari</option><option value="Februari">Februari</option>
-                        <option value="Maret">Maret</option><option value="April">April</option>
-                        <option value="Mei">Mei</option><option value="Juni">Juni</option>
-                        <option value="Juli">Juli</option><option value="Agustus">Agustus</option>
-                        <option value="September">September</option><option value="Oktober">Oktober</option>
-                        <option value="November">November</option><option value="Desember">Desember</option>
-                    </select>
-                    <div class="flex items-end gap-2">
-                        <h2 id="totalBulanIni" class="text-4xl font-black">Rp 0</h2>
-                    </div>
-                    <p class="text-indigo-200 text-[10px] uppercase font-bold tracking-widest mt-1">Saldo Kas Terkumpul</p>
-                </div>
-                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="md:col-span-2 bg-indigo-600 rounded-[2rem] p-8 text-white shadow-xl shadow-indigo-100">
+                <p class="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Periode Laporan</p>
+                <select id="filterBulan" onchange="fetchData()" class="bg-indigo-700 text-white font-black text-2xl p-2 rounded-2xl outline-none cursor-pointer mb-4">
+                    <option value="Januari">Januari</option><option value="Februari">Februari</option>
+                    <option value="Maret">Maret</option><option value="April">April</option>
+                    <option value="Mei">Mei</option><option value="Juni">Juni</option>
+                    <option value="Juli">Juli</option><option value="Agustus">Agustus</option>
+                    <option value="September">September</option><option value="Oktober">Oktober</option>
+                    <option value="November">November</option><option value="Desember">Desember</option>
+                </select>
+                <h2 id="totalBulanIni" class="text-4xl font-black mt-2">Rp 0</h2>
+                <p class="text-[10px] uppercase font-bold tracking-widest mt-1 opacity-70 italic">*Data disinkronkan secara Cloud</p>
             </div>
-
-            <div class="bg-white border border-slate-200 rounded-[2rem] p-8 flex items-center gap-6 shadow-sm">
-                <div class="bg-emerald-100 text-emerald-600 w-16 h-16 rounded-3xl flex items-center justify-center text-2xl shadow-inner">🏆</div>
-                <div>
-                    <h3 id="countLunas" class="text-3xl font-black text-slate-800 tracking-tighter">0 / 29</h3>
-                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Siswa Telah Lunas</p>
+            <div class="bg-white border border-slate-200 rounded-[2rem] p-8 flex flex-col justify-center shadow-sm">
+                <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-2">Anggota Lunas</p>
+                <h3 id="countLunas" class="text-3xl font-black text-slate-800">0 / 29</h3>
+                <div class="w-full bg-slate-100 h-2 rounded-full mt-4 overflow-hidden">
+                    <div id="progressBar" class="bg-emerald-500 h-full transition-all duration-1000" style="width: 0%"></div>
                 </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            <div id="adminPanel" class="admin-only lg:col-span-1 animate-in fade-in slide-in-from-left duration-500">
+            <div id="adminPanel" class="admin-only lg:col-span-1">
                 <div class="bg-white p-7 rounded-[2rem] border-2 border-indigo-500 shadow-xl sticky top-28">
-                    <h3 class="text-slate-800 font-black mb-8 flex items-center gap-3">
-                        <span class="bg-indigo-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">✚</span>
-                        Tambah Data Kas
-                    </h3>
-                    
-                    <div class="space-y-6">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest px-1">Nama Anggota</label>
-                            <select id="nama" class="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition font-semibold text-slate-700"></select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest px-1">Nominal (Rp)</label>
-                            <input type="number" id="jumlah" placeholder="Contoh: 5000" class="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition font-bold">
-                        </div>
-                        <button onclick="tambahData()" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl hover:bg-indigo-700 shadow-xl shadow-indigo-200 transition-all active:scale-95">
-                            SIMPAN PEMBAYARAN
-                        </button>
-                        <button onclick="logoutAdmin()" class="w-full text-slate-400 font-bold py-2 rounded-2xl hover:text-red-500 transition text-[10px] uppercase tracking-widest">
-                            ← Logout dari Admin
-                        </button>
+                    <h3 class="text-slate-800 font-black mb-6 flex items-center gap-2">✍️ Input Admin</h3>
+                    <div class="space-y-4">
+                        <select id="nama" class="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl outline-none font-bold text-slate-700"></select>
+                        <input type="number" id="jumlah" placeholder="Nominal Rp" class="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl outline-none font-bold">
+                        <button onclick="tambahData()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-100">SIMPAN</button>
                     </div>
                 </div>
             </div>
 
-            <div id="tableSection" class="lg:col-span-3 transition-all duration-700 ease-in-out">
+            <div id="tableSection" class="lg:col-span-3">
                 <div class="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
-                    <div class="p-6 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
-                        <h3 class="font-black text-slate-700 text-sm tracking-tight uppercase">
-                            Status Pembukuan: <span id="labelBulan" class="text-indigo-600">...</span>
-                        </h3>
-                        <div class="flex items-center gap-2">
-                             <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                             <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest underline decoration-indigo-200 underline-offset-4">Target: Rp 10.000</span>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto overflow-y-auto max-h-[650px]">
+                    <div class="overflow-x-auto max-h-[600px]">
                         <table class="w-full text-left">
-                            <thead class="bg-white sticky top-0 shadow-sm z-10 border-b border-slate-100">
+                            <thead class="bg-slate-50 sticky top-0 z-10 border-b border-slate-100">
                                 <tr class="text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                                    <th class="p-6">Anggota Kelas</th>
+                                    <th class="p-6">Anggota</th>
                                     <th class="p-6 text-right">Terbayar</th>
                                     <th class="p-6 text-right">Sisa</th>
                                     <th class="p-6 text-center">Status</th>
                                     <th class="admin-only p-6 text-center">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody id="tabelRingkasan" class="text-sm font-medium"></tbody>
+                            <tbody id="tabelRingkasan" class="text-sm font-semibold"></tbody>
                         </table>
                     </div>
                 </div>
-                
-                <div class="mt-6 flex justify-center">
-                    <button onclick="resetData()" class="admin-only text-slate-300 hover:text-red-500 text-[10px] font-black uppercase tracking-[0.2em] transition">
-                        Reset Seluruh Database Kas
-                    </button>
-                </div>
             </div>
-
         </div>
     </div>
 
     <script>
-        // --- DATA & CONFIG ---
+        // --- CONFIG (WAJIB ISI) ---
+        const SUPABASE_URL = 'https://fxepkqgcszgrhkkvnmqi.supabase.co'; // Masukkan Project URL-mu
+        const SUPABASE_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4ZXBrcWdjc3pncmhra3ZucW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNDYxNDUsImV4cCI6MjA5MzYyMjE0NX0.sXy0BWZE4ta8wl_ywjUMytXKpb_BoMr5gUmVAj6IMPc'; // Key yang kamu kirim tadi
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         const TARGET_KAS = 10000;
         const PASSWORD_ADMIN = "admin123";
-        const DAFTAR_ANGGOTA = [
-            "Aldi Supriadi", "Almira Ramadhani", "Andi Fadhil Rumpang", "Andi Muh Luqman", 
-            "Andi Ratu Bilqis", "Andi Syahrul Yudiono", "Anditenrilengka", "Arkan Fikri", 
-            "Besse Nurfadillah", "Evi Agnesia", "Febri Aulya Kasunaya", "Fitria", 
-            "Melinda Saputri", "Muh Fikran", "Muh Ilham", "Muh. Iqbal", 
-            "Muh. Resky Wijaya", "Muhammad Sa'ad Hamzah", "Naswa", "Nur Asmil Hasanah", 
-            "Nurul Alifiyatul Aswan", "Nurul Sabila Ramadhani", "Putriani", "Reski Sulistia", 
-            "Saskia", "Syahrul (Admin)", "Yuliana", "Zahrah Rahmadhani", "Muh Fauzan Hidayatullah"
-        ].sort();
+        const DAFTAR_ANGGOTA = ["Aldi Supriadi", "Almira Ramadhani", "Andi Fadhil Rumpang", "Andi Muh Luqman", "Andi Ratu Bilqis", "Andi Syahrul Yudiono", "Anditenrilengka", "Arkan Fikri", "Besse Nurfadillah", "Evi Agnesia", "Febri Aulya Kasunaya", "Fitria", "Melinda Saputri", "Muh Fikran", "Muh Ilham", "Muh. Iqbal", "Muh. Resky Wijaya", "Muhammad Sa'ad Hamzah", "Naswa", "Nur Asmil Hasanah", "Nurul Alifiyatul Aswan", "Nurul Sabila Ramadhani", "Putriani", "Reski Sulistia", "Saskia", "Syahrul (Admin)", "Yuliana", "Zahrah Rahmadhani", "Muh Fauzan Hidayatullah"].sort();
 
         let isAdmin = false;
-        let dataKas = JSON.parse(localStorage.getItem('kas_sekolah_vFinal')) || [];
+        let allDataKas = [];
 
-        // --- LOADING SCRIPT ---
-        const kataKataKas = [
-            "Mengecek siapa yang nunggak...",
-            "Jangan kabur ya, kas ditunggu!",
-            "Uang kas lancar, kelas aman.",
-            "Sedang memproses daftar 'buronan'...",
-            "Menghitung saldo masa depan...",
-            "Dompet tipis? Cicil 2rb aja dulu.",
-            "Admin sedang memantau saldo..."
-        ];
+        // Loading Screen Kata-kata
+        const loadingWords = ["Mengkoneksikan ke Cloud...", "Mengecek daftar iuran...", "Sabar, lagi narik data...", "Uang kas lancar, kelas aman!"];
+        let wordIdx = 0;
+        setInterval(() => {
+            const el = document.getElementById('loading-text');
+            if(el) el.innerText = loadingWords[wordIdx % loadingWords.length];
+            wordIdx++;
+        }, 800);
 
-        let textIdx = 0;
-        const loadingInterval = setInterval(() => {
-            document.getElementById('loading-text').innerText = kataKataKas[textIdx];
-            textIdx = (textIdx + 1) % kataKataKas.length;
-        }, 600);
-
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                clearInterval(loadingInterval);
-                const loader = document.getElementById('loader-wrapper');
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.display = 'none', 600);
-            }, 3000);
-        });
-
-        // --- CORE LOGIC ---
-        const selectNama = document.getElementById('nama');
-        DAFTAR_ANGGOTA.forEach(n => {
-            let opt = document.createElement('option');
-            opt.value = n; opt.innerText = n;
-            selectNama.appendChild(opt);
-        });
-
-        function toggleAdmin() {
-            if (!isAdmin) {
-                const pass = prompt("Masukkan Password Admin:");
-                if (pass === PASSWORD_ADMIN) {
-                    isAdmin = true;
-                    updateUI();
-                } else { alert("Maaf, Password Salah!"); }
-            } else { logoutAdmin(); }
-        }
-
-        function logoutAdmin() {
-            isAdmin = false;
-            updateUI();
-        }
-
-        function updateUI() {
-            const panel = document.getElementById('adminPanel');
-            const tableSec = document.getElementById('tableSection');
-            const adminItems = document.querySelectorAll('.admin-only');
-            const btnText = document.getElementById('adminText');
-            const btnIcon = document.getElementById('adminIcon');
+        // Inisialisasi
+        window.onload = () => {
+            fetchData();
+            const selectNama = document.getElementById('nama');
+            DAFTAR_ANGGOTA.forEach(n => {
+                let opt = document.createElement('option');
+                opt.value = n; opt.innerText = n;
+                selectNama.appendChild(opt);
+            });
+            // Auto select current month
+            const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            document.getElementById('filterBulan').value = months[new Date().getMonth()];
             
-            if (isAdmin) {
-                panel.style.display = 'block';
-                tableSec.classList.replace('lg:col-span-3', 'lg:col-span-2');
-                adminItems.forEach(el => el.style.display = el.tagName === 'BUTTON' ? 'block' : 'table-cell');
-                btnText.innerText = "Mode Admin Aktif";
-                btnIcon.innerText = "🔓";
-            } else {
-                panel.style.display = 'none';
-                tableSec.classList.replace('lg:col-span-2', 'lg:col-span-3');
-                adminItems.forEach(el => el.style.display = 'none');
-                btnText.innerText = "Login Admin";
-                btnIcon.innerText = "🔐";
+            setTimeout(() => {
+                document.getElementById('loader-wrapper').style.opacity = '0';
+                setTimeout(() => document.getElementById('loader-wrapper').style.display = 'none', 600);
+            }, 3000);
+        };
+
+        async function fetchData() {
+            const { data, error } = await supabaseClient.from('kas_pembayaran').select('*');
+            if (!error) {
+                allDataKas = data;
+                render();
             }
-            render();
+        }
+
+        async function tambahData() {
+            const nama = document.getElementById('nama').value;
+            const jumlah = document.getElementById('jumlah').value;
+            const bulan = document.getElementById('filterBulan').value;
+            if (nama && jumlah) {
+                const { error } = await supabaseClient.from('kas_pembayaran').insert([{ nama, jumlah: parseInt(jumlah), bulan }]);
+                if (!error) {
+                    document.getElementById('jumlah').value = '';
+                    fetchData();
+                } else { alert("Error simpan data!"); }
+            }
+        }
+
+        async function hapusEntry(nama, bulan) {
+            if(confirm(`Hapus data ${nama} bulan ${bulan}?`)) {
+                const { error } = await supabaseClient.from('kas_pembayaran').delete().match({ nama, bulan });
+                if (!error) fetchData();
+            }
         }
 
         function render() {
             const bulan = document.getElementById('filterBulan').value;
-            document.getElementById('labelBulan').innerText = bulan;
-            
             const tbody = document.getElementById('tabelRingkasan');
-            const totalElem = document.getElementById('totalBulanIni');
-            const lunasElem = document.getElementById('countLunas');
-            
             tbody.innerHTML = '';
             let totalBulanIni = 0;
             let lunasCount = 0;
             let rekap = {};
-
             DAFTAR_ANGGOTA.forEach(n => rekap[n] = 0);
 
-            dataKas.filter(d => d.bulan === bulan).forEach(item => {
+            allDataKas.filter(d => d.bulan === bulan).forEach(item => {
                 totalBulanIni += parseInt(item.jumlah);
                 rekap[item.nama] += parseInt(item.jumlah);
             });
@@ -268,68 +188,52 @@
                 if(isLunas) lunasCount++;
 
                 tbody.innerHTML += `
-                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <tr class="border-b border-slate-50 hover:bg-slate-50 transition">
                         <td class="p-6 font-bold text-slate-700">${nama}</td>
-                        <td class="p-6 text-right text-indigo-600 font-extrabold tracking-tight">Rp ${bayar.toLocaleString()}</td>
-                        <td class="p-6 text-right text-rose-500 font-mono font-bold">${sisa > 0 ? 'Rp ' + sisa.toLocaleString() : '–'}</td>
+                        <td class="p-6 text-right text-indigo-600 font-bold">Rp ${bayar.toLocaleString()}</td>
+                        <td class="p-6 text-right text-rose-500 font-mono italic">${sisa > 0 ? 'Rp ' + sisa.toLocaleString() : '–'}</td>
                         <td class="p-6 text-center">
-                            <span class="${isLunas ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'} px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest">
+                            <span class="${isLunas ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'} px-3 py-1 rounded-lg text-[9px] font-black uppercase">
                                 ${isLunas ? 'LUNAS' : 'CICIL'}
                             </span>
                         </td>
                         <td class="admin-only p-6 text-center">
-                            <button onclick="hapusEntry('${nama}', '${bulan}')" class="bg-rose-50 text-rose-500 p-2 rounded-xl text-[10px] font-bold hover:bg-rose-500 hover:text-white transition shadow-sm">HAPUS</button>
+                            <button onclick="hapusEntry('${nama}', '${bulan}')" class="text-rose-400 hover:text-rose-600 font-bold text-xs">Hapus</button>
                         </td>
                     </tr>
                 `;
             });
 
-            totalElem.innerText = `Rp ${totalBulanIni.toLocaleString()}`;
-            lunasElem.innerText = `${lunasCount} / ${DAFTAR_ANGGOTA.length}`;
-            localStorage.setItem('kas_sekolah_vFinal', JSON.stringify(dataKas));
+            document.getElementById('totalBulanIni').innerText = `Rp ${totalBulanIni.toLocaleString()}`;
+            document.getElementById('countLunas').innerText = `${lunasCount} / ${DAFTAR_ANGGOTA.length}`;
+            document.getElementById('progressBar').style.width = (lunasCount / DAFTAR_ANGGOTA.length * 100) + '%';
             
-            const adminItems = document.querySelectorAll('.admin-only');
-            adminItems.forEach(el => {
-                if (isAdmin) el.style.display = el.tagName === 'BUTTON' ? 'block' : 'table-cell';
-                else el.style.display = 'none';
-            });
+            const adminEls = document.querySelectorAll('.admin-only');
+            adminEls.forEach(el => el.style.display = isAdmin ? (el.tagName === 'TH' || el.tagName === 'TD' ? 'table-cell' : 'block') : 'none');
         }
 
-        function tambahData() {
-            const nama = document.getElementById('nama').value;
-            const jumlah = document.getElementById('jumlah').value;
-            const bulan = document.getElementById('filterBulan').value;
-
-            if (nama && jumlah) {
-                dataKas.push({ 
-                    nama, 
-                    jumlah, 
-                    bulan, 
-                    tgl: new Date().toLocaleDateString() 
-                });
-                document.getElementById('jumlah').value = '';
-                render();
-            } else { alert("Pilih Nama & Isi Nominal!"); }
+        function toggleAdmin() {
+            if (!isAdmin) {
+                if (prompt("Password Admin:") === PASSWORD_ADMIN) { isAdmin = true; updateUI(); }
+                else { alert("Salah!"); }
+            } else { isAdmin = false; updateUI(); }
         }
 
-        function hapusEntry(nama, bulan) {
-            if(confirm(`Yakin ingin menghapus semua data ${nama} di bulan ${bulan}?`)) {
-                dataKas = dataKas.filter(d => !(d.nama === nama && d.bulan === bulan));
-                render();
+        function updateUI() {
+            const panel = document.getElementById('adminPanel');
+            const tableSec = document.getElementById('tableSection');
+            const btn = document.getElementById('btnAdmin');
+            if (isAdmin) {
+                panel.style.display = 'block';
+                tableSec.classList.replace('lg:col-span-3', 'lg:col-span-2');
+                btn.innerText = "🔓 Admin Aktif";
+            } else {
+                panel.style.display = 'none';
+                tableSec.classList.replace('lg:col-span-2', 'lg:col-span-3');
+                btn.innerText = "🔐 Login Admin";
             }
+            render();
         }
-
-        function resetData() {
-            if(confirm("PERHATIAN: Ini akan menghapus SELURUH data keuangan dari Januari - Desember! Yakin?")) {
-                dataKas = [];
-                render();
-            }
-        }
-
-        // Set Default Month
-        const daftarBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-        document.getElementById('filterBulan').value = daftarBulan[new Date().getMonth()];
-        render();
     </script>
 </body>
 </html>
